@@ -3,9 +3,9 @@ import Header from "./Header";                                // Header → your
 
 export default function AppLayout() {                     // created a layout component that servers as a wrapper for all the page in my app. 
   return (
-    <div>
+    <div className="app-shell">
       <Header />
-      <main className="p-4">
+      <main className="page-shell">
         <Outlet />
       </main>
     </div>

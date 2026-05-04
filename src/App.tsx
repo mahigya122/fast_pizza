@@ -6,6 +6,9 @@ import {
 import AppLayout from "./UI/AppLayout";
 import Home from "./UI/Home";
 import Error from "./UI/Error";
+import Menu from "./features/menu/Menu";
+import Cart from "./features/cart/Cart";
+import CreateOrder from "./features/order/CreateOrder";
 
 //it is use to create a router instance with the specified route configuration. The route configuration is an array of route objects, where each object defines a route and its associated component. The router instance created by createBrowserRouter is then passed to the RouterProvider component, which makes the routing functionality available throughout the app.
 const router = createBrowserRouter([
@@ -17,6 +20,18 @@ const router = createBrowserRouter([
         path: "/",                                         // "/" → homepage
         element: <Home />,                                 // component to render when the path matches.This will render inside <Outlet /> of AppLayout
       },
+      {
+        path: "/menu",
+        element: <Menu />,
+      },
+      {
+        path: "/cart",
+        element: <Cart />,
+      },
+      {
+        path: "/order/new",
+        element: <CreateOrder />,
+      }
     ],
   },
 ]);
