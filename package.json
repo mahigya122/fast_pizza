@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
+    "@hookform/resolvers": "^3.0.0",
+    "react-hook-form": "^7.0.0",
+    "zod": "^4.0.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.2",

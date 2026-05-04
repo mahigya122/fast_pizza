@@ -28,78 +28,157 @@ export default function Order() {
 	if (!order) {              // if order is not found
 		return (
 			<section className="content-section">
-				<h2 className="section-title">Order not found</h2>
-				<p className="section-subtitle">We could not find an order with that ID on this device.</p>
-				<div className="cart-footer-actions order-links" style={{ marginTop: 18 }}>
-					<LinkButton to="/menu">Back to menu</LinkButton>
-					<LinkButton to="/order/new" className="secondary-btn">
-						Place a new order
-					</LinkButton>
+				<div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 20 }}>
+					<h2 className="section-title">📭 Order not found</h2>
+					<p className="section-subtitle" style={{ marginTop: 12 }}>We could not find an order with that ID on this device.</p>
+					<div className="cart-footer-actions order-links" style={{ marginTop: 28, justifyContent: "center" }}>
+						<LinkButton to="/menu">Back to menu</LinkButton>
+						<LinkButton to="/order/new" className="secondary-btn">
+							Place a new order
+						</LinkButton>
+					</div>
 				</div>
 			</section>
 		);
 	}
-         // what is shown in the ui when order is shown/found.
+	// what is shown in the ui when order is shown/found.
+	const itemCount = order.cart.reduce((sum, item) => sum + item.quantity, 0);
+	const timeRemaining = formatTimeRemaining(order.estimatedDeliveryAt);
+	const isDelivered = timeRemaining === "Out for delivery or arriving any moment";
+
 	return ( 
 		<section className="content-section"> 
-			<h2 className="section-title">Order #{order.id}</h2>                      {/*Saved locally so you can reopen it anytime from this browser.*/}
-
-			<div className="order-detail-card" style={{ marginTop: 14 }}>
-				<div className="cart-footer-label">Delivery status</div>
-				<div className="cart-footer-amount" style={{ fontSize: 22, marginTop: 6 }}>
-					{formatTimeRemaining(order.estimatedDeliveryAt)}
+			{/* Order Header */}
+			<div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 20 }}>
+				<div>
+					<h2 className="section-title" style={{ marginBottom: 4 }}>Order #{order.id}</h2>
+					<p className="section-subtitle">Saved locally • Placed {new Date(order.createdAt).toLocaleDateString()}</p>
 				</div>
-				<p style={{ marginTop: 8, color: "var(--text-muted)" }}>
-					Estimated arrival by {new Date(order.estimatedDeliveryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
-				</p>
-				<p style={{ color: "var(--text-muted)" }}>
-					Updated {new Date(now).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}
-				</p>
-			</div>
-
-			<div className="order-detail-grid">
-				<div className="order-detail-card">
-					<div className="cart-footer-label">Customer</div>
-					<div className="cart-footer-amount" style={{ fontSize: 22 }}>
-						{order.customer}
-					</div>
-					<p style={{ marginTop: 8, color: "var(--text-muted)" }}>address: {order.address}</p>
-					{order.phone && <p style={{ color: "var(--text-muted)" }}>Phone: {order.phone}</p>}
-					{order.notes && <p style={{ color: "var(--text-muted)" }}>Notes: {order.notes}</p>}
-				</div>
-
-				<div className="order-detail-card">
-					<div className="cart-footer-label">Summary</div>
-					<div style={{ display: "grid", gap: 6, marginTop: 8 }}>
-						<div>Total price: ${order.totalPrice}</div>
-						<div>Items: {order.cart.reduce((sum, item) => sum + item.quantity, 0)}</div>
-						<div>Created: {new Date(order.createdAt).toLocaleString()}</div>
-					</div>
+				<div style={{
+					display: "inline-block",
+					padding: "8px 14px",
+					backgroundColor: isDelivered ? "#d1fae5" : "#fef3c7",
+					color: isDelivered ? "#065f46" : "#92400e",
+					borderRadius: 8,
+					fontWeight: 700,
+					fontSize: "0.85rem"
+				}}>
+					{isDelivered ? "🚗 Out for delivery" : "🍕 Preparing"}
 				</div>
 			</div>
 
-			<div style={{ marginTop: 20 }}>
-				<h3 className="menu-item-title">Items</h3>
+			{/* Delivery Status Card */}
+			<div style={{
+				border: "1px solid var(--border)",
+				borderRadius: 14,
+				background: "linear-gradient(135deg, rgba(31, 111, 120, 0.08), rgba(240, 163, 74, 0.06))",
+				padding: 20,
+				marginBottom: 20
+			}}>
+				<div className="cart-footer-label" style={{ marginBottom: 8 }}>⏱️ Delivery Status</div>
+				<div style={{ fontSize: 28, fontWeight: 800, color: "var(--accent)", marginBottom: 12 }}>
+					{timeRemaining}
+				</div>
+				<div style={{
+					display: "grid",
+					gridTemplateColumns: "1fr 1fr",
+					gap: 16,
+					marginTop: 12,
+					padding: "12px 0",
+					borderTop: "1px solid rgba(31, 111, 120, 0.1)"
+				}}>
+					<div>
+						<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>Arrival Time</p>
+						<p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-strong)" }}>
+							{new Date(order.estimatedDeliveryAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+						</p>
+					</div>
+					<div>
+						<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 4 }}>Last Updated</p>
+						<p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "var(--text-strong)" }}>
+							{new Date(now).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+						</p>
+					</div>
+				</div>
+			</div>
+
+			{/* Details Grid */}
+			<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
+				{/* Customer Info */}
+				<div style={{
+					border: "1px solid var(--border)",
+					borderRadius: 12,
+					padding: 18,
+					background: "var(--surface)"
+				}}>
+					<div className="cart-footer-label" style={{ marginBottom: 10 }}>👤 Customer Info</div>
+					<div style={{ fontSize: 18, fontWeight: 800, marginBottom: 12, color: "var(--text-strong)" }}>{order.customer}</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+						<div>
+							<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Address</p>
+							<p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-strong)", lineHeight: 1.4 }}>{order.address}</p>
+						</div>
+						{order.phone && (
+							<div>
+								<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Phone</p>
+								<p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-strong)" }}>{order.phone}</p>
+							</div>
+						)}
+						{order.notes && (
+							<div>
+								<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Notes</p>
+								<p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-strong)", fontStyle: "italic" }}>"{order.notes}"</p>
+							</div>
+						)}
+					</div>
+				</div>
+
+				{/* Order Summary */}
+				<div style={{
+					border: "1px solid var(--border)",
+					borderRadius: 12,
+					padding: 18,
+					background: "var(--surface)"
+				}}>
+					<div className="cart-footer-label" style={{ marginBottom: 10 }}>📦 Order Summary</div>
+					<div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>Total Items</p>
+							<p style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: "var(--text-strong)" }}>{itemCount}</p>
+						</div>
+						<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+							<p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem" }}>Total Price</p>
+							<p style={{ margin: 0, fontSize: "1.3rem", fontWeight: 800, color: "var(--primary-strong)" }}>${order.totalPrice}</p>
+						</div>
+						<div style={{ borderTop: "1px solid var(--border)", paddingTop: 12, marginTop: 12 }}>
+							<p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, marginBottom: 4 }}>Placed At</p>
+							<p style={{ margin: 0, fontSize: "0.95rem", color: "var(--text-strong)" }}>{new Date(order.createdAt).toLocaleString()}</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Order Items */}
+			<div style={{ marginBottom: 24 }}>
+				<h3 className="menu-item-title" style={{ marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>🍕 Order Items</h3>
 				<ul className="cart-list">
 					{order.cart.map((item) => (
-						<li key={`${order.id}-${item.pizzaId}`} className="cart-row">
+						<li key={`${order.id}-${item.pizzaId}`} className="cart-row" style={{ background: "linear-gradient(180deg, var(--surface), var(--surface-tint))" }}>
 							<div>
-								<div style={{ fontWeight: 800 }}>{item.name}</div>
-								<div style={{ color: "var(--text-muted)" }}>
-									{item.quantity} × ${item.unitPrice}
+								<div style={{ fontWeight: 800, fontSize: "1.02rem", marginBottom: 6 }}>{item.name}</div>
+								<div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+									{item.quantity} × ${item.unitPrice.toFixed(2)}
 								</div>
 							</div>
-							<div style={{ fontWeight: 800 }}>${item.totalPrice}</div>
+							<div style={{ fontWeight: 800, fontSize: "1.1rem", color: "var(--primary-strong)" }}>${item.totalPrice.toFixed(2)}</div>
 						</li>
 					))}
 				</ul>
 			</div>
 
-			<div className="cart-footer-actions order-links" style={{ marginTop: 18 }}>
-				<LinkButton to="/menu">Back to menu</LinkButton>
-				<LinkButton to="/cart" className="secondary-btn">
-					Open cart
-				</LinkButton>
+			{/* Action Buttons */}
+			<div className="cart-footer-actions order-links" style={{ marginTop: 24, justifyContent: "center", gap: 12 }}>
+				<LinkButton to="/menu" style={{ flex: "0 1 auto" }}>← Back to menu</LinkButton>
 			</div>
 		</section>
 	);
