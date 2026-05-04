@@ -4,26 +4,28 @@ import { useUser } from "../../context/UserContext";
 import { useCart } from "../../context/CartContext";
 import CreateUser from "../user/CreateUser";
 import { createOrder } from "../../services/apiRestaurant";
+import { saveOrder } from "../../services/orderStorage";
 // apiGeocoding is a small JS helper; suppress implicit any for now
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { getUserAddress } from "../../services/apiGeocoding.js";
 
 export default function CreateOrder() {
-	const navigate = useNavigate();
-	const { state: userState, dispatch: userDispatch } = useUser();
-	const { state: cartState, dispatch: cartDispatch } = useCart();
+	const navigate = useNavigate();                    // useNavigate → used to redirect to another page (e.g., after order is placed, you might want to navigate to order confirmation page or back to menu)
+	const { state: userState, dispatch: userDispatch } = useUser();                     //userState.username → stored name and userDispatch → update username globally
+	const { state: cartState, dispatch: cartDispatch } = useCart();                     //cartState.cart → all pizzas user selected and cartDispatch → clear cart after order
 
-	const [name, setName] = useState(userState.username || "");
-	const [address, setAddress] = useState("");
+    //this are form input
+	const [name, setName] = useState(userState.username || "");          //name is prefilled from global user state, but can be edited here. setName → updates name state when user types in the input field.
+	const [address, setAddress] = useState("");                                
 	const [phone, setPhone] = useState("");
 	const [notes, setNotes] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [success, setSuccess] = useState<null | { id: string }>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	// autofill address using browser geolocation (optional)
-	async function tryAutofillAddress() {
+	// autofill address using browser geolocation.
+	async function tryAutofillAddress() {                          
 		try {
 			setLoading(true);
 			const result = await getUserAddress();
@@ -35,34 +37,81 @@ export default function CreateOrder() {
 		}
 	}
 
-	const total = cartState.cart.reduce((s, i) => s + i.price * i.quantity, 0);
+	const total = cartState.cart.reduce((sum, item) => {
+		const unitPrice = Number(item.price) || 0;
+		const quantity = Number(item.quantity) || 0;
+		return sum + unitPrice * quantity;
+	}, 0);     // calculate total price from cart items (quantity × price for each item, then sum it all up)
 
 	async function handlePlaceOrder() {
 		setError(null);
 		if (!name.trim()) return setError("Please provide your name.");
 		if (!address.trim()) return setError("Please provide delivery address.");
 		if (cartState.cart.length === 0) return setError("Your cart is empty.");
+		if (!Number.isFinite(total) || total <= 0) return setError("Cart total is invalid. Please remove and re-add your items.");
+
+		const normalizedCart = cartState.cart.map((item) => {                 //This transforms the cart items into a consistent format expected by the backend API. It ensures that each item has a valid pizzaId, name, quantity, price, and totalPrice. This step is important for data integrity and to prevent issues when the order is processed on the server.
+			const pizzaId = Number(item.id);
+			const quantity = Number(item.quantity);
+			const unitPrice = Number(item.price);
+			const totalPrice = quantity * unitPrice;
+
+			return {
+				pizzaId,
+				id: pizzaId,
+				name: item.name,
+				pizzaName: item.name,
+				quantity,
+				price: unitPrice,
+				unitPrice,
+				totalPrice,
+			};
+		});
+
+		const hasInvalidItem = normalizedCart.some(                         // validate each cart item to ensure it has valid pizzaId, name, quantity, price, and totalPrice. If any item is invalid, we set an error message and prevent the order from being placed.
+			(item) =>
+				!item.pizzaId ||
+				!item.name.trim() ||
+				!Number.isFinite(item.quantity) ||
+				item.quantity <= 0 ||
+				!Number.isFinite(item.price) ||
+				item.price <= 0 ||
+				!Number.isFinite(item.totalPrice)
+		);
+		if (hasInvalidItem) return setError("One or more cart items are invalid. Please remove and re-add them.");
 
 		const payload = {
-			customerName: name.trim(),
+			customer: name.trim(),
 			address: address.trim(),
 			phone: phone.trim(),
 			notes: notes.trim(),
-			items: cartState.cart.map((it) => ({ id: it.id, name: it.name, price: it.price, quantity: it.quantity })),
-			total,
+			orderPrice: total,
+			totalPrice: total,
+			cart: normalizedCart,
 		} as const;
 
 		try {
-			setLoading(true);
-			const created = await createOrder(payload);
+			setLoading(true);                                                     // ui shows "Placing order..." while this is running
+			const created = await createOrder(payload);                                    //This is the API call: sends cart + user data to server and waits for the response. If successful, the server will create a new order and return its details (like order ID).
 			// created usually contains order id or details
-			const id = (created && (created as any).id) || (created && (created as any)._id) || String(Date.now());
+			const id = (created && (created as any).id) || (created && (created as any)._id) || String(Date.now());         // this insure that order always has an ID so it use 3 different ways: created.id → normal API format, created._id → MongoDB style, fallback → Date.now() (backup ID)
+			saveOrder({
+				id: String(id),
+				customer: name.trim(),
+				address: address.trim(),
+				phone: phone.trim(),
+				notes: notes.trim(),
+				orderPrice: total,
+				totalPrice: total,
+				cart: normalizedCart,
+				createdAt: new Date().toISOString(),
+				estimatedDeliveryAt: new Date(Date.now() + 35 * 60 * 1000).toISOString(),
+			});
 			// clear cart and persist username
-			cartDispatch({ type: "cart/clear" });
-			userDispatch({ type: "user/setUsername", payload: name.trim() });
-			setSuccess({ id });
-			// optionally navigate to order/:id if you add a route later
-			// navigate(`/order/${id}`);
+			cartDispatch({ type: "cart/clear" });                                               //empties cart after order is placed
+			userDispatch({ type: "user/setUsername", payload: name.trim() });                     //username persists across pages and future orders, so we save it in global user state
+			setSuccess({ id });                                                          //this triggers the success UI that show order conformation and order ID.
+			navigate(`/order/${id}`);
 		} catch (err: unknown) {
 			setError((err as Error)?.message || String(err));
 		} finally {
@@ -70,7 +119,7 @@ export default function CreateOrder() {
 		}
 	}
 
-	if (success) {
+	if (success) {            // when order is placed successfully, show confirmation message with order ID and a button to continue shopping (navigate back to menu)
 		return (
 			<section className="content-section">
 				<h2 className="section-title">Order placed</h2>
@@ -120,7 +169,7 @@ export default function CreateOrder() {
 				</label>
 
 				<label>
-					Phone (optional)
+					Phone
 					<input value={phone} onChange={(e) => setPhone(e.target.value)} className="order-search-input" />
 				</label>
 

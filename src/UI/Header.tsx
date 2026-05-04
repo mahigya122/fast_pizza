@@ -42,7 +42,7 @@ export default function Header() {
       <form onSubmit={handleSearch} className="order-search-form">
         <input
           type="text"
-          placeholder="Search order #"
+          placeholder="Track order #"
           value={query}
           onChange={(e) => setQuery(e.target.value)}                                  //value → comes from state, onChange → updates state when user types
           className="order-search-input"

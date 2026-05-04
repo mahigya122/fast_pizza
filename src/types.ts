@@ -17,6 +17,30 @@ export type CartItem = {
   quantity: number;
 };
 
+export type OrderCartItem = {
+  pizzaId: number;
+  id: number;
+  name: string;
+  pizzaName: string;
+  quantity: number;
+  price: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
+export type StoredOrder = {
+  id: string;
+  customer: string;
+  address: string;
+  phone: string;
+  notes: string;
+  orderPrice: number;
+  totalPrice: number;
+  cart: OrderCartItem[];
+  createdAt: string;
+  estimatedDeliveryAt: string;
+};
+
 export type AppState = {                          //This defines the shape of the global state of the application. It includes a user object with a username property and a cart array that holds CartItem objects. This state will be managed by a reducer and provided to the rest of the app through context.
   user: {
     username: string;

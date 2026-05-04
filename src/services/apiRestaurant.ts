@@ -34,7 +34,9 @@ export async function createOrder(newOrder: Record<string, unknown>) {          
   });
 
   if (!res.ok) {
-    throw new Error("Failed to create order");
+    const errorData = await res.json().catch(() => ({}));
+    const errorMsg = (errorData as any)?.message || `HTTP ${res.status}`;
+    throw new Error(`Failed to create order: ${errorMsg}`);
   }
 
   const data = (await res.json()) as { data: unknown };
