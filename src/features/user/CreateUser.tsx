@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApp } from "../../store.tsx";
+import { useUser } from "../../context/UserContext";                         //useUser → access user state and dispatch
 
 type CreateUserProps = {
 	buttonLabel?: string;
@@ -13,7 +13,7 @@ export default function CreateUser({
 	onCreated,
 }: CreateUserProps) {
 	const [name, setName] = useState("");
-	const { dispatch } = useApp();
+	const { dispatch } = useUser();                                   //dispatch → send action to update username
 
 	function handleCreateUser() {
 		if (!name.trim()) return;

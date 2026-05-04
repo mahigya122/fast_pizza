@@ -23,7 +23,7 @@ export default function Menu() {
   }, []);                                                    //Runs once when page loads
 
   useEffect(() => {
-    document.body.classList.add("menu-scroll-lock");
+    document.body.classList.add("menu-scroll-lock");                  //Adds a class to the entire page (<body>) so the body become unscrollable when the menu is open. This is useful for mobile devices to prevent background scrolling when the user is browsing the menu. and overflow: hidden;
 
     return () => {
       document.body.classList.remove("menu-scroll-lock");

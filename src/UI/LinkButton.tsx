@@ -1,7 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";                    //This is React Router’s navigation component (no page reload)
 import type { ReactNode } from "react";
 
-type LinkButtonProps = {
+type LinkButtonProps = {                          // cudtome type that defines the props that LinkButton component will accept. It has three properties: to, className, and children.
 	to: string;
 	className?: string;
 	children: ReactNode;

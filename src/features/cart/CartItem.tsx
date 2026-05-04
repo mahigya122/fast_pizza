@@ -1,20 +1,20 @@
-import UpdateItemQuantity from "./UpdateItemQuantity";
-import type { CartItem as CartItemType } from "../../types.ts";
+import UpdateItemQuantity from "./UpdateItemQuantity";                                  //UpdateItemQuantity → handles + / − / delete actions
+import type { CartItem as CartItemType } from "../../types.ts";                      //CartItemType → TypeScript type for a cart item, import type means:only used for type checking and not included in final JS
 
 type CartItemProps = {
-	item: CartItemType;
+	item: CartItemType;                                                   //This says: component must receive an item and it must match CartItemType
 };
 
-export default function CartItem({ item }: CartItemProps) {
+export default function CartItem({ item }: CartItemProps) {                              //Destructuring props: instead of props.item, you directly use item
 	return (
-		<li className="cart-row">
+		<li className="cart-row">                                          {/*One row in cart list*/}
 			<div>
 				<p className="menu-item-title">
-					{item.quantity}x {item.name}
+					{item.quantity}x {item.name}                               {/*2x Margherita*/}
 				</p>
-				<p className="menu-item-meta">${item.price * item.quantity}</p>
+				<p className="menu-item-meta">${item.price * item.quantity}</p>                      {/*Calculates total for that item*/}
 			</div>
-			<UpdateItemQuantity item={item} />
+			<UpdateItemQuantity item={item} />                                    {/*This component handles: increasing, decreasing, and deleting the item from the cart. It receives the entire item as a prop so it knows which item to update when buttons are clicked.*/}
 		</li>
 	);
 }

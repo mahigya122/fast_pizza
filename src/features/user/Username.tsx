@@ -1,4 +1,4 @@
-import { useApp } from "../../store.tsx";
+import { useUser } from "../../context/UserContext";                                //useUser → access user state to display username
 
 type UsernameProps = {
 	className?: string;
@@ -6,8 +6,8 @@ type UsernameProps = {
 };
 
 export default function Username({ className = "user-chip", prefix = "👤" }: UsernameProps) {
-	const { state } = useApp();
-	const username = state.user.username;
+	const { state } = useUser();
+	const username = state.username;
 
 	if (!username) return null;
 

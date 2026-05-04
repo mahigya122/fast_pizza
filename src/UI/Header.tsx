@@ -1,11 +1,16 @@
-import { Link, useNavigate } from "react-router-dom";                 //Link → for navigation without page reload, useNavigate → lets you redirect programmatically
+import { useNavigate } from "react-router-dom";                 //useNavigate → lets you redirect programmatically
 import { useState } from "react";                                  // useState → manages input value
 import type { FormEvent } from "react";
 import Username from "../features/user/Username";
+import { useCart } from "../context/CartContext";               //useCart → access cart dispatch to reset cart
+import { useUser } from "../context/UserContext";               //useUser → access user dispatch to reset username
+                              //useApp → access global state + dispatch to reset cart and username
 
 export default function Header() {
   const [query, setQuery] = useState("");                                //Stores what user types in the search box. i.e. Example: "12345"
   const navigate = useNavigate();                                      //This gives you a function to change routes manually. i.e. navigate("/order/12345") → redirects to order page with id 12345
+  const { dispatch: cartDispatch } = useCart();                    //dispatch → to reset cart
+  const { dispatch: userDispatch } = useUser();                   //dispatch → to reset username
 
   function handleSearch(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();                                          //stops page reload (default form behavior)
@@ -15,12 +20,18 @@ export default function Header() {
     setQuery("");                                                //clears input after search
   }
 
+  function handleLogoClick() {                                   //reset everything: clear cart and username when clicking logo
+    userDispatch({ type: "user/setUsername", payload: "" });        //clear username
+    cartDispatch({ type: "cart/clear" });                           //clear cart
+    navigate("/");                                              //go back to home
+  }
+
   return (
     <header className="topbar">                                   {/*This is the top navigation bar that appears on every page. It includes the logo, username, and search form.*/}
       {/* LEFT: Logo */}
-      <Link to="/" className="brand-logo">
+      <button onClick={handleLogoClick} className="brand-logo">
         pizza.co
-      </Link>
+      </button>
 
       {/* RIGHT: Search */}
       <div className="topbar-tools">
