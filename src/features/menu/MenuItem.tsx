@@ -1,26 +1,27 @@
-import { useCart } from "../../context/CartContext";                                //useCart → access global state + dispatch
-import UpdateItemQuantity from "../cart/UpdateItemQuantity";                        //UpdateItemQuantity → component to increase/decrease quantity
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState } from "../../redux/store";
+import { addItem, increaseQty } from "../../redux/cartSlice";
+import UpdateItemQuantity from "../cart/UpdateItemQuantity";
 import type { Pizza } from "../../types";
 
 type MenuItemProps = {
   pizza: Pizza;
 };
 
-export default function MenuItem({ pizza }: MenuItemProps) {                             //This component receives a pizza object. like pizza = {id: 1, name: "Margherita", unitPrice: 12, ingredients: ["cheese", "tomato"] }
-  const { state, dispatch } = useCart();                                         // //state.cart → all cart items,dispatch → update cart
+export default function MenuItem({ pizza }: MenuItemProps) {
+  const dispatch = useDispatch();
+  const cart = useSelector((state: RootState) => state.cart.cart);
+  const cartItem = cart.find((item) => item.id === pizza.id);
 
-  const cartItem = state.cart.find((item) => item.id === pizza.id);                 //If found → returns that item, If not → returns undefined
-
-  function handleAdd() {                                                 //When clicked: Sends action to reducer Adds item to cart with quantity = 1
-    dispatch({
-      type: "cart/add",
-      payload: {
+  function handleAdd() {
+    dispatch(
+      addItem({
         id: pizza.id,
         name: pizza.name,
         price: pizza.unitPrice,
         quantity: 1,
-      },
-    });
+      })
+    );
   }
 
   return (

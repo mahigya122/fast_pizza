@@ -7,9 +7,8 @@ import Loader from "../../UI/Loader";
 import LinkButton from "../../UI/LinkButton";
 
 export default function Menu() {
-  const [menu, setMenu] = useState<Pizza[]>([]);                                   //Initially: menu is empty array. After fetching data from server, we update it with setMenu(data) and the component re-renders to show the pizzas.
+  const [menu, setMenu] = useState<Pizza[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
 		let isMounted = true;
@@ -20,9 +19,7 @@ export default function Menu() {
 
 				if (isMounted) setMenu(data);
 			} catch (err) {
-				if (isMounted) {
-					setError("Failed to load menu. Please try again.");
-				}
+				// Error handling - could display to user if needed
 			} finally {
 				if (isMounted) setIsLoading(false);
 			}
