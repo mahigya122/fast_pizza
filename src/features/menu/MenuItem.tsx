@@ -1,6 +1,6 @@
 import { useCart } from "../../context/CartContext";                                //useCart → access global state + dispatch
 import UpdateItemQuantity from "../cart/UpdateItemQuantity";                        //UpdateItemQuantity → component to increase/decrease quantity
-import type { Pizza } from "../../types.ts";
+import type { Pizza } from "../../types";
 
 type MenuItemProps = {
   pizza: Pizza;
