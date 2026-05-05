@@ -1,6 +1,6 @@
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../redux/store";
-import { addItem, increaseQty } from "../../redux/cartSlice";
+import { addItem } from "../../redux/cartSlice";
 import UpdateItemQuantity from "../cart/UpdateItemQuantity";
 import type { Pizza } from "../../types";
 
