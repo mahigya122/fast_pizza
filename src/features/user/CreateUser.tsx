@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useUser } from "../../context/UserContext";                         //useUser → access user state and dispatch
+import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+
+import { setUsername } from "../../redux/userSlice";                // setUsername → action creator to update username in Redux state                  
 
 type CreateUserProps = {
 	buttonLabel?: string;
@@ -13,17 +16,21 @@ export default function CreateUser({
 	onCreated,
 }: CreateUserProps) {
 	const [name, setName] = useState("");
-	const { dispatch } = useUser();                                   //dispatch → send action to update username
+
+	const dispatch = useDispatch();                                   //dispatch → send action to update username
+	const navigate = useNavigate();                                              //navigate → used to redirect to another page
 
 	function handleCreateUser() {
 		if (!name.trim()) return;
 
-		dispatch({
-			type: "user/setUsername",
-			payload: name.trim(),
-		});
+		// save username in Redux
+		dispatch(setUsername(name.trim()));
 
+		// optional callback (still supported)
 		onCreated?.();
+
+		// navigation happens here
+		navigate("/menu");
 	}
 
 	return (
@@ -32,7 +39,7 @@ export default function CreateUser({
 				type="text"
 				placeholder={placeholder}
 				value={name}
-				onChange={(e) => setName(e.target.value)}
+				onChange={(e) => setName(e.target.value)}                        //value → comes from state, onChange → updates state when user types
 				className="hero-input"
 			/>
 

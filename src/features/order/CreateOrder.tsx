@@ -1,38 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUser } from "../../context/UserContext";
-import { useCart } from "../../context/CartContext";
-import CreateUser from "../user/CreateUser";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState } from "../../redux/store";
+
 import { createOrder } from "../../services/apiRestaurant";
 import { saveOrder } from "../../services/orderStorage";
-// Using React Hook Form + zod for validation
-// Install if missing: `npm install react-hook-form zod @hookform/resolvers`
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-// apiGeocoding is a small JS helper; suppress implicit any for now
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { getUserAddress } from "../../services/apiGeocoding.js";
 
+import CreateUser from "../user/CreateUser";
+
+import { clearCart } from "../../redux/cartSlice.js";
+import { setUsername } from "../../redux/userSlice.js";
+
+// react-hook-form + zod
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 export default function CreateOrder() {
-	const navigate = useNavigate();                    // useNavigate → used to redirect to another page (e.g., after order is placed, you might want to navigate to order confirmation page or back to menu)
-	const { state: userState, dispatch: userDispatch } = useUser();                     //userState.username → stored name and userDispatch → update username globally
-	const { state: cartState, dispatch: cartDispatch } = useCart();                     //cartState.cart → all pizzas user selected and cartDispatch → clear cart after order
+	const navigate = useNavigate();   
+	const dispatch = useDispatch();
+	
+	//redux state
+	const username = useSelector((state: RootState) => state.user.name);                                            // useSelector → helper to read username from Redux state. This allows us to pre-fill the name field in the order form 
+	const cart = useSelector((state: RootState) => state.cart.cart);                                                   // useSelector → helper to read cart items from Redux state. This allows us to display the order summary and calculate total price in the checkout page.
 
-	// Form inputs are now managed by React Hook Form with zod validation.
-	// This replaces the previous useState-based fields so validation is unified and simpler.
-
+	// Validation schema
 	const orderSchema = z.object({
-		// customer: Required field. Must have at least 1 character (after trimming)
-		customer: z.string().trim().min(1, "❌ Please fill in your name."),
-		// address: Required field. Must have at least 1 character (after trimming)
-		address: z.string().trim().min(1, "❌ Please fill in delivery address."),
-		// phone: Required field. Must be digits only (0-9)
-		phone: z.string()
+		customer: z.string().trim().min(1, "❌ Please fill in your name."),                                       // customer: Required field. Must have at least 1 character (after trimming)
+		address: z.string().trim().min(1, "❌ Please fill in delivery address."),                                  // address: Required field. Must have at least 1 character (after trimming)
+		phone: z.string()                                                                                     
 			.trim()
 			.min(1, "❌ Please fill in your phone number.")
 			.refine(
-				/^\d+$/.test.bind(/^\d+$/),
+				(val) => /^[0-9()\-\s]+$/.test(val),
 				"❌ Phone must contain only numbers (0-9). Please use correct format."
 			),
 		// notes: Optional field
@@ -41,13 +42,13 @@ export default function CreateOrder() {
 
 	type OrderFormValues = z.infer<typeof orderSchema>;
 
-	const { register, handleSubmit, reset, getValues, formState: { errors }, setError } = useForm<OrderFormValues>({
-		// Removed resolver to handle validation manually in the submit handler
-		// This ensures handlePlaceOrder is always called, allowing us to display field-level errors
+	const { register, handleSubmit, reset, getValues, formState: { errors }, setError 
+          } = useForm<OrderFormValues>({
+		
 		mode: "onSubmit",
 		reValidateMode: "onSubmit",
 		defaultValues: {
-			customer: userState.username || "",
+			customer: username || "",
 			address: "",
 			phone: "",
 			notes: "",
@@ -55,23 +56,53 @@ export default function CreateOrder() {
 	});
 	const [loading, setLoading] = useState(false);
 	const [autofillLoading, setAutofillLoading] = useState(false);
-	const [success, setSuccess] = useState<null | { id: string }>(null);
+	const [success, setSuccess] = useState<null | { id: string }>(null);                        // success state to show order confirmation after placing order successfully
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-	// Helper function to display error messages
-	const getErrorMessage = (fieldName: keyof OrderFormValues): string | null => {
-		const error = errors[fieldName];
-		if (!error) return null;
-		
-		// Handle different error structures
-		if (typeof error === 'object' && 'message' in error) {
-			return String(error.message);
-		}
-		if (typeof error === 'string') {
-			return error;
-		}
-		return null;
-	};
+	// Style for the success message container - moved to top to prevent "used before declaration" errors
+	const styles = {
+		card: {
+			marginTop: 24,
+			padding: 20,
+			borderRadius: 14,
+			border: "1px solid var(--border)",
+			background:
+				"linear-gradient(135deg, rgba(31, 111, 120, 0.08), rgba(240, 163, 74, 0.06))",
+		},
+
+		label: {
+			margin: "0 0 8px",
+			fontSize: "0.75rem",
+			color: "var(--text-muted)",
+			textTransform: "uppercase" as const,
+			fontWeight: 700,
+			letterSpacing: "0.1em",
+		},
+
+		orderId: {
+			margin: 0,
+			fontSize: "1.8rem",
+			fontWeight: 800,
+			color: "var(--accent)",
+			fontFamily: "monospace",
+		},
+
+		hint: {
+			marginTop: 12,
+			fontSize: "0.9rem",
+			color: "var(--text-muted)",
+		},
+
+		actions: {
+			marginTop: 28,
+			justifyContent: "center",
+		},
+	} as const;
+
+	const total = cart.reduce((sum, item) => {                                                 // calculate total price from cart items (quantity × price for each item, then sum it all up)
+		return sum + Number(item.price) * Number(item.quantity);
+	}, 0);
+
 	async function tryAutofillAddress() {
 		try {
 			setAutofillLoading(true);
@@ -79,30 +110,22 @@ export default function CreateOrder() {
 			// preserve other form values while updating address
 			const current = getValues();
 			reset({ ...current, address: String(result.address ?? "") });
-		} catch (err: unknown) {
-			// ignore silently — user can type address manually
 		} finally {
 			setAutofillLoading(false);
 		}
 	}
-
-	const total = cartState.cart.reduce((sum, item) => {
-		const unitPrice = Number(item.price) || 0;
-		const quantity = Number(item.quantity) || 0;
-		return sum + unitPrice * quantity;
-	}, 0);     // calculate total price from cart items (quantity × price for each item, then sum it all up)
 
 	// handlePlaceOrder now receives form values and handles validation manually
 	async function handlePlaceOrder(values: OrderFormValues) {
 		setErrorMsg(null);
 		
 		// Manually validate with Zod to catch and display errors
-		const validationResult = orderSchema.safeParse(values);
-		if (!validationResult.success) {
+	const validation = orderSchema.safeParse(values);
+	if (!validation.success) {
 			// Set field-level errors so they display in the form
-			validationResult.error.issues.forEach((err: any) => {
-				const fieldName = err.path[0] as keyof OrderFormValues;
-				setError(fieldName, {
+		validation.error.issues.forEach((err: any) => {
+				const field = err.path[0] as keyof OrderFormValues;
+				setError(field, {
 					type: "manual",
 					message: err.message
 				});
@@ -111,60 +134,43 @@ export default function CreateOrder() {
 		}
 		
 		// cart-level guards
-		if (cartState.cart.length === 0) return setErrorMsg("Your cart is empty.");
-		if (!Number.isFinite(total) || total <= 0) return setErrorMsg("Cart total is invalid. Please remove and re-add your items.");
+		if (cart.length === 0) return setErrorMsg("Your cart is empty.");
+		if (!Number.isFinite(total) || total <= 0) 
+			return setErrorMsg("Cart total is invalid. Please remove and re-add your items.");
 
-		const normalizedCart = cartState.cart.map((item) => {                 //This transforms the cart items into a consistent format expected by the backend API. It ensures that each item has a valid pizzaId, name, quantity, price, and totalPrice. This step is important for data integrity and to prevent issues when the order is processed on the server.
-			const pizzaId = Number(item.id);
-			const quantity = Number(item.quantity);
-			const unitPrice = Number(item.price);
-			const totalPrice = quantity * unitPrice;
-
-			return {
-				pizzaId,
-				id: pizzaId,
-				name: item.name,
-				pizzaName: item.name,
-				quantity,
-				price: unitPrice,
-				unitPrice,
-				totalPrice,
-			};
-		});
-
-		const hasInvalidItem = normalizedCart.some(                         // validate each cart item to ensure it has valid pizzaId, name, quantity, price, and totalPrice. If any item is invalid, we set an error message and prevent the order from being placed.
-			(item) =>
-				!item.pizzaId ||
-				!item.name.trim() ||
-				!Number.isFinite(item.quantity) ||
-				item.quantity <= 0 ||
-				!Number.isFinite(item.price) ||
-				item.price <= 0 ||
-				!Number.isFinite(item.totalPrice)
-		);
-		if (hasInvalidItem) return setErrorMsg("One or more cart items are invalid. Please remove and re-add them.");
+		const normalizedCart = cart.map((item: any) => ({
+			pizzaId: Number(item.id),
+			id: Number(item.id), 
+			name: item.name,
+			pizzaName: item.name,
+			quantity: Number(item.quantity),
+			price: Number(item.price), 
+			unitPrice: Number(item.price),
+			totalPrice: Number(item.price) * Number(item.quantity),
+		}));
 
 		const payload = {
 			customer: values.customer.trim(),
 			address: values.address.trim(),
-			phone: values.phone?.trim() ?? "",
+			phone: values.phone.trim(),
 			notes: values.notes?.trim() ?? "",
 			orderPrice: total,
 			totalPrice: total,
 			cart: normalizedCart,
-		} as const;
+		};
 
 		try {
 			setLoading(true);                                                     // ui shows "Placing order..." while this is running
+
 			const created = await createOrder(payload);                                    //This is the API call: sends cart + user data to server and waits for the response. If successful, the server will create a new order and return its details (like order ID).
-			// created usually contains order id or details
-			const id = (created && (created as any).id) || (created && (created as any)._id) || String(Date.now());
+			
+			const id = (created as any)?.id;                        // we expect the server to return the new order's ID in the response. We extract it here to use for local storage and navigation.
 			// persist order locally for lookup later
 			saveOrder({
 				id: String(id),
 				customer: values.customer.trim(),
 				address: values.address.trim(),
-				phone: values.phone?.trim() ?? "",
+				phone: values.phone.trim(),
 				notes: values.notes?.trim() ?? "",
 				orderPrice: total,
 				totalPrice: total,
@@ -172,61 +178,67 @@ export default function CreateOrder() {
 				createdAt: new Date().toISOString(),
 				estimatedDeliveryAt: new Date(Date.now() + 35 * 60 * 1000).toISOString(),
 			});
+
 			// clear cart and persist username
-			cartDispatch({ type: "cart/clear" });                                               //empties cart after order is placed
-			userDispatch({ type: "user/setUsername", payload: values.customer.trim() });
-			// reset form so inputs reflect saved username where appropriate
-			reset({ customer: values.customer.trim(), address: "", phone: "", notes: "" });
+			dispatch(clearCart()); 
+			dispatch(setUsername(values.customer.trim()));                                                 
+			
+			reset({ 
+				customer: values.customer.trim(), 
+				address: "", 
+				phone: "", 
+				notes: "" 
+			});
+
 			setSuccess({ id });                                                          //this triggers the success UI that show order conformation and order ID.
 			navigate(`/order/${id}`);
-		} catch (err: unknown) {
-			setErrorMsg((err as Error)?.message || String(err));
+		} catch (err: any) {
+			setErrorMsg((err.message || String(err)));
 		} finally {
 			setLoading(false);
 		}
 	}
 
-	if (success) {            // when order is placed successfully, show confirmation message with order ID and a button to continue shopping (navigate back to menu)
+	if (success) {            // when order is placed successfully.
 		return (
 			<section className="content-section">
 				<div style={{ textAlign: "center", paddingTop: 20, paddingBottom: 20 }}>
+					{/* Success Icon */}
 					<div style={{ fontSize: "3rem", marginBottom: 16 }}>✅</div>
+					{/* Title */}
 					<h2 className="section-title">Order Placed!</h2>
+						{/* Subtitle */}
 					<p className="section-subtitle" style={{ marginTop: 12 }}>Thank you for your order. Your pizza is being prepared and will arrive soon.</p>
 					
 					{/* Order ID Card */}
-					<div style={{
-						marginTop: 24,
-						padding: 20,
-						background: "linear-gradient(135deg, rgba(31, 111, 120, 0.08), rgba(240, 163, 74, 0.06))",
-						border: "1px solid var(--border)",
-						borderRadius: 14
-					}}>
-						<p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.1em" }}>Your Order ID</p>
-						<p style={{ margin: 0, fontSize: "1.8rem", fontWeight: 800, color: "var(--accent)", fontFamily: "monospace" }}>{success.id}</p>
-						<p style={{ margin: "12px 0 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>Save this ID to track your order</p>
-					</div>
-
-					<div style={{ marginTop: 28, justifyContent: "center" }} className="cart-footer-actions order-links">
-						<button
-							className="primary-btn"
-							onClick={() => navigate("/menu")}
-						>
-							🍕 Continue Shopping
-						</button>
-						<button
-							className="secondary-btn"
-							onClick={() => navigate(`/order/${success.id}`)}
-						>
-							Track Order
-						</button>
-					</div>
+					<div style={styles.card}>
+					<p style={styles.label}>Your Order ID</p>
+					<p style={styles.orderId}>{success.id}</p>
+					<p style={styles.hint}>Save this ID to track your order</p>
 				</div>
-			</section>
-		);
-	}
+						{/* Actions */}
+				<div className="cart-footer-actions order-links" style={styles.actions}>
+					<button
+						className="primary-btn"
+						onClick={() => navigate("/menu", { replace: true })}
+					>
+						🍕 Continue Shopping
+					</button>
 
-	return (                 //form to review order and enter delivery details.
+					<button
+						className="secondary-btn"
+						onClick={() => navigate(`/order/${success.id}`)}
+					>
+						📦 Track Order
+					</button>
+				</div>
+			</div>
+		</section>
+	);
+}
+
+//form to review order and enter delivery details.
+return (                 
 		<section className="content-section">
 			<h2 className="section-title">🛒 Checkout</h2>
 			<p className="section-subtitle">Review your order and enter your delivery details below.</p>
@@ -242,11 +254,11 @@ export default function CreateOrder() {
 					<h3 className="menu-item-title" style={{ marginTop: 0, marginBottom: 18, display: "flex", alignItems: "center", gap: 8 }}>👤 Your Information</h3>
 
 					{/* Name Field */}
-					{!userState.username && (
-						<div style={{ marginBottom: 18 }}>
-							<CreateUser buttonLabel="Save name for this order" placeholder="Enter your name for order" onCreated={() => reset({ ...getValues(), customer: userState.username || "" })} />
-						</div>
-					)}
+				{!username && (
+					<div style={{ marginBottom: 18 }}>
+						<CreateUser buttonLabel="Save name for this order" placeholder="Enter your name for order" onCreated={() => reset({ ...getValues(), customer: username || "" })} />
+					</div>
+				)}
 
 					<div style={{ marginBottom: 16 }}>
 						<label style={{ display: "block", marginBottom: 8, fontWeight: 600, fontSize: "0.95rem" }}>
@@ -260,14 +272,14 @@ export default function CreateOrder() {
 								width: "100%",
 								padding: "12px 14px",
 								fontSize: "1rem",
-								border: getErrorMessage("customer") ? "2px solid #d06c2f" : "1px solid var(--border)",
+								border: errors.customer ? "2px solid #d06c2f" : "1px solid var(--border)",
 								borderRadius: 10,
 								background: "var(--surface)"
 							}}
 						/>
-						{getErrorMessage("customer") && (
+						{errors.customer && (
 							<p style={{ color: "#d06c2f", marginTop: 8, fontWeight: 600, fontSize: "0.9rem" }}>
-								{getErrorMessage("customer")}
+								{errors.customer.message}
 							</p>
 						)}
 					</div>
@@ -286,7 +298,7 @@ export default function CreateOrder() {
 									flex: 1,
 									padding: "12px 14px",
 									fontSize: "1rem",
-									border: getErrorMessage("address") ? "2px solid #d06c2f" : "1px solid var(--border)",
+									border: errors.address ? "2px solid #d06c2f" : "1px solid var(--border)",
 									borderRadius: 10,
 									background: "var(--surface)"
 								}}
@@ -301,9 +313,9 @@ export default function CreateOrder() {
 								{autofillLoading ? "📍 Loading..." : "📍 Autofill"}
 							</button>
 						</div>
-						{getErrorMessage("address") && (
+						{errors.address && (
 							<p style={{ color: "#d06c2f", marginTop: 8, fontWeight: 600, fontSize: "0.9rem" }}>
-								{getErrorMessage("address")}
+								{errors.address.message}
 							</p>
 						)}
 					</div>
@@ -321,14 +333,14 @@ export default function CreateOrder() {
 								width: "100%",
 								padding: "12px 14px",
 								fontSize: "1rem",
-								border: getErrorMessage("phone") ? "2px solid #d06c2f" : "1px solid var(--border)",
+								border: errors.phone ? "2px solid #d06c2f" : "1px solid var(--border)",
 								borderRadius: 10,
 								background: "var(--surface)"
 							}}
 						/>
-						{getErrorMessage("phone") && (
+						{errors.phone && (
 							<p style={{ color: "#d06c2f", marginTop: 8, fontWeight: 600, fontSize: "0.9rem" }}>
-								{getErrorMessage("phone")}
+								{errors.phone.message}
 							</p>
 						)}
 					</div>
@@ -366,7 +378,7 @@ export default function CreateOrder() {
 				}}>
 					<h3 className="menu-item-title" style={{ marginTop: 0, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>🍕 Order Summary</h3>
 					<ul className="cart-list">
-						{cartState.cart.map((it) => (
+						{cart.map((it) => (
 							<li key={it.id} className="cart-row" style={{ background: "linear-gradient(180deg, var(--surface), var(--surface-tint))" }}>
 								<div>
 									<div style={{ fontWeight: 800, fontSize: "1.02rem" }}>{it.name}</div>
@@ -412,12 +424,12 @@ export default function CreateOrder() {
 					</button>
 					<button 
 						type="submit" 
-						disabled={loading || cartState.cart.length === 0} 
+						disabled={loading || cart.length === 0} 
 						className="primary-btn"
 						style={{
 							minWidth: 200,
-							opacity: loading || cartState.cart.length === 0 ? 0.6 : 1,
-							cursor: loading || cartState.cart.length === 0 ? "not-allowed" : "pointer"
+							opacity: loading || cart.length === 0 ? 0.6 : 1,
+							cursor: loading || cart.length === 0 ? "not-allowed" : "pointer"
 						}}
 					>
 						{loading ? "⏳ Placing Order..." : "✓ Place Order"}

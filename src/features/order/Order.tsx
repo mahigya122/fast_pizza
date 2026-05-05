@@ -3,8 +3,9 @@ import { useParams } from "react-router-dom";
 import LinkButton from "../../UI/LinkButton";
 import { getOrderById } from "../../services/orderStorage";
 
-function formatTimeRemaining(targetTime: string) {
-	const remainingMs = new Date(targetTime).getTime() - Date.now();
+function formatTimeRemaining(targetTime: string, now: number) {
+	const remainingMs = new Date(targetTime).getTime() - now;
+
 	if (!Number.isFinite(remainingMs)) return "Estimated time unavailable";
 	if (remainingMs <= 0) return "Out for delivery or arriving any moment";
 
@@ -18,6 +19,7 @@ function formatTimeRemaining(targetTime: string) {
 export default function Order() {
 	const { orderId } = useParams();                                 // useParams → gets orderId from the URL (e.g., /order/123 → orderId will be "123"). This allows us to know which order to display based on the URL.
 	const order = orderId ? getOrderById(orderId) : null;               // getOrderById → retrieves the order details from local storage using the orderId. If orderId is not present, it returns null.
+
 	const [now, setNow] = useState(Date.now());                      // now state is used to trigger re-render every second so that the remaining time updates in real-time. It’s initialized with the current timestamp.
 
 	useEffect(() => {
@@ -42,9 +44,11 @@ export default function Order() {
 		);
 	}
 	// what is shown in the ui when order is shown/found.
-	const itemCount = order.cart.reduce((sum, item) => sum + item.quantity, 0);
-	const timeRemaining = formatTimeRemaining(order.estimatedDeliveryAt);
-	const isDelivered = timeRemaining === "Out for delivery or arriving any moment";
+	const itemCount = order.cart?.reduce((sum, item) => sum + item.quantity, 0);
+	const timeRemaining = formatTimeRemaining(order.estimatedDeliveryAt, now);
+	const remainingMs =                                                            //Ms= milliseconds
+             new Date(order.estimatedDeliveryAt).getTime() - now;
+    const isDelivered = remainingMs <= 0;
 
 	return ( 
 		<section className="content-section"> 

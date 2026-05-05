@@ -1,9 +1,6 @@
-import { useNavigate } from "react-router-dom";                // useNavigate → used to redirect to another page
 import CreateUser from "../features/user/CreateUser";
 
-export default function Home() {
-  const navigate = useNavigate();                                //Used to move to another route: navigate("/menu") → takes user to menu page
-
+export default function Home() {                            //Used to move to another route: navigate("/menu") → takes user to menu page
   return (
     <div className="hero-card">
       <p className="eyebrow">Fast. Fresh. Reliable.</p>
@@ -15,7 +12,7 @@ export default function Home() {
         Fresh pizza, fast delivery.
       </p>
 
-      <CreateUser onCreated={() => navigate("/menu")} />
+      <CreateUser />
     </div>
   );
 }
