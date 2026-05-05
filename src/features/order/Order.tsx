@@ -178,7 +178,7 @@ export default function Order() {
 
 			{/* Action Buttons */}
 			<div className="cart-footer-actions order-links" style={{ marginTop: 24, justifyContent: "center", gap: 12 }}>
-				<LinkButton to="/menu" style={{ flex: "0 1 auto" }}>← Back to menu</LinkButton>
+				<LinkButton to="/menu" style={{ flex: "0 1 auto" }}>← Back to menu</LinkButton> 
 			</div>
 		</section>
 	);

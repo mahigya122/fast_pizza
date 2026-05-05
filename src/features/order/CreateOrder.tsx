@@ -207,7 +207,7 @@ export default function CreateOrder() {
 						<p style={{ margin: "12px 0 0", fontSize: "0.9rem", color: "var(--text-muted)" }}>Save this ID to track your order</p>
 					</div>
 
-					<div style={{ marginTop: 28 }} className="cart-footer-actions order-links" style={{ justifyContent: "center" }}>
+					<div style={{ marginTop: 28, justifyContent: "center" }} className="cart-footer-actions order-links">
 						<button
 							className="primary-btn"
 							onClick={() => navigate("/menu")}
