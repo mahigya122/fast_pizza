@@ -8,7 +8,8 @@ import LinkButton from "../../UI/LinkButton";
 
 export default function Menu() {
   const [menu, setMenu] = useState<Pizza[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [Loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
 		let isMounted = true;
@@ -16,12 +17,13 @@ export default function Menu() {
 		(async () => {
 			try {
 				const data = await getMenu();
-
 				if (isMounted) setMenu(data);
-			} catch (err) {
+
+			} catch {
+         if (isMounted) setError("Failed to load menu. Please try again.");
 				// Error handling - could display to user if needed
 			} finally {
-				if (isMounted) setIsLoading(false);
+				if (isMounted) setLoading(false);
 			}
 		})();
 
@@ -43,12 +45,21 @@ export default function Menu() {
       <h1 className="section-title">Menu</h1>
       <p className="section-subtitle">Handcrafted recipes with balanced ingredients and bold flavors.</p>
 
-      {isLoading ? (
+      {Loading ? (
         <Loader label="Loading menu..." />
-      ) : menu.length === 0 ? (
-        <div className="empty-state-card">
-          <p className="section-subtitle">No pizzas available right now.</p>
+      ) : error ? (
+        <div className="error-state-card">
+          <p className="section-subtitle">{error}</p>
           <LinkButton to="/" className="primary-btn">Back home</LinkButton>
+        </div>
+        ) : menu.length === 0 ? (
+        <div className="empty-state-card">
+          <p className="section-subtitle">
+            No pizzas available right now.
+          </p>
+          <LinkButton to="/" className="primary-btn">
+            Back home
+          </LinkButton>
         </div>
       ) : (
         <div className="menu-list">
@@ -58,7 +69,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* FOOTER */}
       <CartOverview />
     </div>
   );
