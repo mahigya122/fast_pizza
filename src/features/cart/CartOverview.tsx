@@ -7,7 +7,7 @@ import type { RootState } from "../../redux/store";
 export default function CartOverview() {
 	const cart = useSelector((state: RootState) => state.cart.cart);
 
-	const (totalQuantity, totalPrice) = cart.reduce(                         //This loops through cart and calculates: totalQuantity = sum of all item quantities, totalPrice = sum of (quantity × price) for all items
+	const { totalQuantity, totalPrice } = cart.reduce(                         //This loops through cart and calculates: totalQuantity = sum of all item quantities, totalPrice = sum of (quantity × price) for all items
 		(acc, item) => {
 			acc.totalQuantity += item.quantity;
 			acc.totalPrice += item.quantity * item.price;

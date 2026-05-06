@@ -19,25 +19,8 @@ export default function Cart() {
 	return (
 		<div className="content-section cart-page">
 			<p className="eyebrow">Your order</p>
-			<h2 className="section-title">{username}'s cart</h2>
+			<h2 className="section-title">{username ? `${username}'s cart` : "Your cart"}</h2>
 			<p className="section-subtitle">Adjust quantities, remove items, or continue adding more pizzas.</p>
-
-			<ul className="cart-list">
-				{cart.map((item) => (
-					<CartItem key={item.id} item={item} />
-				))}
-			</ul>
-
-			<div className="cart-total cart-footer-fixed">
-				<div className="cart-footer-summary">
-					{/* fallback username */}
-					<h2 className="section-title">
-				{username ? `${username}'s cart` : "Your cart"}
-			</h2>
-
-			<p className="section-subtitle">
-				Adjust quantities, remove items, or continue adding more pizzas.
-			</p>
 
 			<ul className="cart-list">
 				{cart.map((item) => (
