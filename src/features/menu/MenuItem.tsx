@@ -9,9 +9,10 @@ type MenuItemProps = {
 };
 
 export default function MenuItem({ pizza }: MenuItemProps) {
-  const state, dispatch = useCart();
+  const dispatch = useDispatch();
+  const cart = useSelector((state: RootState) => state.cart.cart);
 
-  const cartItem = state.cart.find(
+  const cartItem = cart.find(
     (item) => item.id === pizza.id
   );
 
