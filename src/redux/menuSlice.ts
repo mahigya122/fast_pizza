@@ -1,4 +1,4 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";              // createslice function that is used to create a a Redux slice. which define state, write reducers, and auto-generate action. and payloadaction is a typescript type this tells “What type of data will be inside action.payload”.
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";              // createslice function that is used to create a a Redux slice. which define state, write reducers, and auto-generate action. and payloadaction is a typescript type this tells "What type of data will be inside action.payload".
 import type { Pizza } from "../types";
 
 type MenuState = {
